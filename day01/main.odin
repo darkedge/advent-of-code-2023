@@ -1048,4 +1048,14 @@ main :: proc() {
   }
 
   fmt.println("sum: ", sum)
+
+  similarity_score := 0
+  for i in 0..<len(table.left) {
+    val := table.left[i]
+    for j in 0..<len(table.right) {
+      if val == table.right[j] do similarity_score += val
+    }
+  }
+
+  fmt.println("similarity score: ", similarity_score)
 }
