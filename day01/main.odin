@@ -1,8 +1,11 @@
 package main
 
 import "core:fmt"
+import "core:strings"
+import "core:strconv"
+import "core:sort"
 
-input :: `61087   87490
+INPUT :: `61087   87490
 31697   16584
 57649   82503
 75864   27659
@@ -1004,12 +1007,45 @@ input :: `61087   87490
 85773   24213
 `
 
-print_hello :: proc() -> int {
-  return 2
+Table :: struct {
+  left: [dynamic]int,
+  right: [dynamic]int
+}
+
+read_table :: proc(str: string) -> Table {
+  table: Table
+  lines := strings.split(str, "\n")
+  for l in lines {
+    split := strings.split(l, "   ");
+    if len(split) > 1 {
+      left, _ := strconv.parse_int(split[0])
+      right, _ := strconv.parse_int(split[1])
+      // if right < left {
+      //   s := right
+      //   right = left
+      //   left = s
+      // }
+      append(&table.left, left)
+      append(&table.right, right)
+    }
+  }
+
+  return table
 }
 
 main :: proc() {
-  for x := 0; x < print_hello(); x += 1 {
-    fmt.println("Hellope!")
+  table := read_table(INPUT)
+
+  sort.quick_sort(table.left[:])
+  sort.quick_sort(table.right[:])
+
+  sum := 0
+  for i in 0..<len(table.left) {
+    //fmt.println(table.left[i], "   ", table.right[i])
+    diff := abs(table.right[i] - table.left[i]);
+    fmt.println(diff)
+    sum += diff
   }
+
+  fmt.println("sum: ", sum)
 }
