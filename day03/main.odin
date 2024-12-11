@@ -17,7 +17,10 @@ State :: enum {
   Start,
   Mul,
   LeftOperand,
-  RightOperand
+  RightOperand,
+  DoPartial,
+  Do,
+  Dont,
 }
 
 mul :: proc (leftBegin, leftEnd, rightBegin, rightEnd: int) -> int {
@@ -36,17 +39,20 @@ main :: proc() {
   rightOperandBegin := -1
   rightOperandEnd := -1
   sum := 0
+  enabledSum := 0
+  enabled := true
 
   loop: for i := 0; i < len(input); {
     switch state {
       case .Start:
         for {
-          if input[i] != 'm' {
+          if input[i] != 'm' && input[i] != 'd' {
             i += 1
             if i == len(input) do break loop
           } else do break
         }
-        state = .Mul
+        if input[i] == 'm' do state = .Mul
+        else if input[i] == 'd' do state = .DoPartial
       case .Mul:
         i += 1
         if i == len(input) do break loop
@@ -63,6 +69,48 @@ main :: proc() {
                 case '0'..='9': state = .LeftOperand
                 case: state = .Start
               }
+            } else do state = .Start
+          } else do state = .Start
+        } else do state = .Start
+      case .DoPartial:
+        i += 1
+        if i == len(input) do break loop
+        if input[i] == 'o' {
+          i += 1
+          if i == len(input) do break loop
+          if input[i] == 'n' do state = .Dont
+          else if input[i] == '(' do state = .Do
+          else do state = .Start
+        } else do state = .Start
+      case .Do:
+        i += 1
+        if i == len(input) do break loop
+        if input[i] == ')' {
+          i += 1
+          if i == len(input) do break loop
+          enabled = true;
+          // fmt.println("do()")
+          state = .Start
+        } else do state = .Start
+      case .Dont:
+        i += 1
+        if i == len(input) do break loop
+        if input[i] == '\'' {
+          i += 1
+          if i == len(input) do break loop
+          if input[i] == 't' {
+            i += 1
+            if i == len(input) do break loop
+            if input[i] == '(' {
+              i += 1
+              if i == len(input) do break loop
+              if input[i] == ')' {
+                i += 1
+                if i == len(input) do break loop
+                enabled = false;
+                // fmt.println("don't()")
+                state = .Start
+              } else do state = .Start
             } else do state = .Start
           } else do state = .Start
         } else do state = .Start
@@ -105,11 +153,14 @@ main :: proc() {
           rightOperandEnd = i
           i += 1
           if i == len(input) do break loop
-          sum += mul(leftOperandBegin, leftOperandEnd, rightOperandBegin, rightOperandEnd)
+          product := mul(leftOperandBegin, leftOperandEnd, rightOperandBegin, rightOperandEnd)
+          sum += product
+          if enabled do enabledSum += product
         }
         state = .Start
     }
   }
 
   fmt.println("sum: ", sum)
+  fmt.println("enabled sum: ", enabledSum)
 }
