@@ -1010,22 +1010,35 @@ Report :: struct {
   levels: [dynamic]int
 }
 
-is_safe :: proc(report: Report, asc: bool) -> bool {
+is_safe :: proc(report: Report, asc: bool, dampener: bool) -> bool {
   left := report.levels[0]
-  // fmt.print(asc ? "🔼 " : "🔽 ", left, " ");
+  fmt.print(dampener ? "": "  ", asc ? "🔼 " : "🔽 ", left, " ")
   for i in 1..<len(report.levels) {
     right := report.levels[i]
-    // fmt.print(right, " ");
-    difference := (asc ? 1 : -1) * left + (asc ? -1 : 1) * right
+    fmt.print(right, " ")
+    difference := (asc ? -1 : 1) * left + (asc ? 1 : -1) * right
     switch difference {
       case 1..=3:
         left = right
       case:
-        // fmt.println("<- ❌");
+        if dampener {
+          // Remove an offending level and disable dampener
+          // Remove right level if last
+          removeLeft, removeRight: Report
+          append(&removeLeft.levels, ..report.levels[:])
+          ordered_remove(&removeLeft.levels, i - 1)
+
+          append(&removeRight.levels, ..report.levels[:])
+          ordered_remove(&removeRight.levels, i)
+
+          fmt.println("<- ❌")
+          return is_safe(removeLeft, asc, false) || is_safe(removeRight, asc, false)
+        }
+        fmt.println("<- ❌")
         return false
     }
   }
-  // fmt.println("✔");
+  fmt.println("✔")
   return true
 }
 
@@ -1042,7 +1055,7 @@ main :: proc() {
   lines := strings.split(input, "\n")
   for line in lines {
     report: Report
-    words := strings.split(line, " ");
+    words := strings.split(line, " ")
     for word in words {
       level, _ := strconv.parse_int(word)
       append(&report.levels, level)
@@ -1053,8 +1066,15 @@ main :: proc() {
   numSafe := 0
   for report in reports {
     // print_report(report)
-    if is_safe(report, true) || is_safe(report, false) do numSafe += 1
+    if is_safe(report, true, false) || is_safe(report, false, false) do numSafe += 1
   }
 
   fmt.println("safe reports: ", numSafe)
+
+  numSafe = 0
+  for report in reports {
+    if is_safe(report, true, true) || is_safe(report, false, true) do numSafe += 1
+  }
+
+  fmt.println("with dampener: ", numSafe)
 }
