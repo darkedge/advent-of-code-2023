@@ -4,6 +4,7 @@ import "core:fmt"
 import "core:strings"
 import "core:strconv"
 import "core:sort"
+import "core:unicode/utf8"
 
 input := `MXMXMAMXAXMSMMMSSSXSSSMXXMSSXSMSASXSMXSAMXSMMMSMSMMSSXMSMSMSMMMSSMAAXSAMXSMSSMASAMMMSAMXSSSSSSSSXSAXMMMAXMMSSXMASXXSAXSXXAMXSSMSXMSAMXMAMAMX
 SMMAMXMSAMXAAAAAXMAMXAMAASAMSXXXAXAXAASAMAAAAAAXMAAAMAMXAAMAAAAAAMMXMSXMASAAAMXMAMAMSAMXXAMAAAAAXMAMSASMXSAASASAXMAMXMASMASASAMXASXMSMSMSSSM
@@ -160,13 +161,13 @@ main :: proc() {
   lines := strings.split(input, "\n")
   grid := Grid{lines, len(lines[0]), len(lines)}
 
+  Dir :: struct {
+    x, y: int
+  }
+
   sum := 0
   for y in 0..<grid.height {
     for x in 0..<grid.width {
-
-      Dir :: struct {
-        x, y: int
-      }
       c := at(grid, x, y) or_continue
       if c == 'X' {
         dirs :: [?]Dir{
@@ -191,4 +192,26 @@ main :: proc() {
   }
 
   fmt.println("XMAS count:", sum)
+
+  sum = 0
+  for y in 1..<(grid.height - 1) {
+    for x in 1..<(grid.width - 1) {
+      c := at(grid, x, y) or_continue
+      if c == 'A' {
+        // 0   1
+        //
+        // 3   2
+        dirs := [?]Dir{{-1, -1}, {1, -1}, {1, 1}, {-1, 1}}
+        buf : [4]rune
+        for d in 0..<len(dirs) {
+          buf[d] = at(grid, x + dirs[d].x, y + dirs[d].y) or_break
+          if d == 3 do switch utf8.runes_to_string(buf[:]) {
+            case "MMSS", "MSSM", "SMMS", "SSMM": sum += 1
+          }
+        }
+      }
+    }
+  }
+
+  fmt.println("X-MAS count:", sum)
 }
