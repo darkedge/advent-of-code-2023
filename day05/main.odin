@@ -1411,25 +1411,41 @@ main :: proc() {
     append(&updates, update)
   }
 
-  // Naive implementation
-  sum := 0
-  nextUpdate: for update in updates { // For each update
+  determine_update :: proc(rules: []Rule, update: [dynamic]int, correct: bool) -> (int, int) {
     len := len(update)
-    if len == 0 do continue
+    if len == 0 do return 0, 0
+
     for i in 0..<len {
       left := update[i]  // Get left page number
       for j in (i + 1)..<len {
         right := update[j] // Get all right page numbers
-        for comp in rules {
-          if left == comp.right && right == comp.left { // Rule broken
-            continue nextUpdate
+        for rule in rules {
+          if left == rule.right && right == rule.left {
+            // Rule broken, apply rule and try again
+            update[i] = rule.left
+            update[j] = rule.right
+            return determine_update(rules, update, false)
           }
         }
       }
     }
-    // All rules passed
-    sum += update[len / 2]
+
+    if correct {
+      return update[len / 2], 0
+    } else {
+      return 0, update[len / 2]
+    }
   }
 
-  fmt.println("correctly-ordered update sum: ", sum)
+  // Naive implementation
+  sum_correct := 0
+  sum_incorrect := 0
+  for update in updates { // For each update
+    correct, incorrect := determine_update(rules[:], update, true)
+    sum_correct += correct;
+    sum_incorrect += incorrect;
+  }
+
+  fmt.println("correctly-ordered update sum: ", sum_correct)
+  fmt.println("incorrectly-ordered update sum: ", sum_incorrect)
 }
