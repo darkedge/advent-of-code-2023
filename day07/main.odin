@@ -897,6 +897,27 @@ main :: proc() {
   for equation in equations {
     if possibly_true(equation.testValue, equation.numbers[0], equation.numbers[1:]) do total_calibration_result += equation.testValue
   }
-
   fmt.println("Total calibration result: ", total_calibration_result)
+
+  possibly_true_cat :: proc(testValue, accumulator: int, numbers: []int) -> bool {
+    mul := accumulator * numbers[0]
+    add := accumulator + numbers[0]
+
+    cat := accumulator * 10
+    dec := numbers[0]
+    for dec >= 10 {
+      dec /= 10
+      cat *= 10
+    }
+    cat += numbers[0]
+
+    if len(numbers) == 1 do return mul == testValue || add == testValue || cat == testValue
+    return possibly_true_cat(testValue, mul, numbers[1:]) || possibly_true_cat(testValue, add, numbers[1:]) || possibly_true_cat(testValue, cat, numbers[1:])
+  }
+
+  total_calibration_result = 0
+  for equation in equations {
+    if possibly_true_cat(equation.testValue, equation.numbers[0], equation.numbers[1:]) do total_calibration_result += equation.testValue
+  }
+  fmt.println("Total calibration result 2: ", total_calibration_result)
 }
