@@ -148,7 +148,7 @@ main :: proc() {
     mapped_area[i] = make([]u8, columns)
   }
 
-  guard : [2]int
+  guard_orig : [2]int
 
   y := 0
   for line in strings.split(input, "\n") {
@@ -158,20 +158,21 @@ main :: proc() {
       r := line[x]
       mapped_area[y][x] = r
       if r == '^' {
-        guard[0] = y
-        guard[1] = x
+        guard_orig[0] = y
+        guard_orig[1] = x
       }
     }
     y += 1
   }
 
+  guard := guard_orig
   dir := [2]int{-1, 0}
-  distinct_positions := 0
+  path : [dynamic][2]int
   for {
     if guard[1] >= rows || guard[0] >= columns || guard[0] < 0 || guard[1] < 0 do break
     if mapped_area[guard[0]][guard[1]] != 'X' {
-      distinct_positions += 1
       mapped_area[guard[0]][guard[1]] = 'X'
+      append(&path, guard)
     }
 
     next := guard + dir
@@ -185,5 +186,52 @@ main :: proc() {
     guard = next
   }
 
-  fmt.println("distinct positions:", distinct_positions)
+  fmt.println("distinct positions:", len(path))
+  
+  // Separate code for Part Two
+  // Because we only have to place one obstruction, we only need to check for positions along the path
+  // created in Part One.
+  // Make a naive implementation that remembers the turns we made at which positions, to detect loops.
+  pop_front(&path) // Remove the first position, as we can't place an obstruction there
+  Bonk :: struct {
+    position: [2]int,
+    dir: [2]int
+  }
+
+  bonks : [dynamic]Bonk
+  positions := 0
+  for obstruction in path {
+    // Reset guard 
+    guard = guard_orig
+    dir = [2]int{-1, 0}
+    clear(&bonks)
+
+    // Place obstruction
+    mapped_area[obstruction[0]][obstruction[1]] = '#'
+
+    navigation: for {
+      if guard[1] >= rows || guard[0] >= columns || guard[0] < 0 || guard[1] < 0 do break  
+      next := guard + dir
+      if next[1] >= 0 && next[0] >= 0 && next[0] < rows && next[1] < columns {
+        for mapped_area[next[0]][next[1]] == '#' {
+          // Check if the bonks array already contains the current position and direction
+          for b in bonks {
+            if b.position == guard && b.dir == dir {
+              positions += 1
+              break navigation
+            }
+          }
+          append(&bonks, Bonk{guard, dir})
+          dir = [2]int{dir[1], -dir[0]}
+          next = guard + dir
+        }
+      }
+      guard = next
+    }
+
+    // Reset obstruction
+    mapped_area[obstruction[0]][obstruction[1]] = 'X'
+  }
+
+  fmt.println("obstruction positions:", positions)
 }
