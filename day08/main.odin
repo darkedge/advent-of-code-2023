@@ -84,13 +84,16 @@ main :: proc() {
   antinodes := make(map[[2]int]bool)
   defer delete(antinodes)
 
+  antinodes_resonant := make(map[[2]int]bool)
+  defer delete(antinodes_resonant)
+
   // Plot antinodes
-  fmt.println(len(antennas))
+  // fmt.println(len(antennas))
   for key, arr in antennas {
-    fmt.println(key, arr)
+    // fmt.println(key, arr)
     for left, i in arr {
       for right, j in arr[i + 1:] {
-        fmt.println(left, right)
+        // fmt.println(left, right)
         // Draw arrow from left to right
         d := right - left
         // Extend (add to right) and retract (subtract from left)
@@ -100,9 +103,18 @@ main :: proc() {
             antinodes[p] = true
           }
         }
+
+        for d_acc := left; d_acc[0] >= 0 && d_acc[0] < rows && d_acc[1] >= 0 && d_acc[1] < cols; d_acc -= d {
+          antinodes_resonant[d_acc] = true
+        }
+        for d_acc := right; d_acc[0] >= 0 && d_acc[0] < rows && d_acc[1] >= 0 && d_acc[1] < cols; d_acc += d {
+          antinodes_resonant[d_acc] = true
+        }
       }
     }
   }
   
   fmt.println("unique antinode locations:", len(antinodes))
+
+  fmt.println("including resonant harmonics:", len(antinodes_resonant))
 }
