@@ -93,23 +93,30 @@ main :: proc() {
     }
   }
 
-  score_map := make([][][]map[[2]int]bool, 10)
+  Trailhead :: struct {
+    unique_trails: map[[2]int]bool,
+    distinct_trails: int
+  }
+
+  score_map := make([][][]Trailhead, 10)
   for i in 0..<len(score_map) {
-    score_map[i] = make([][]map[[2]int]bool, rows)
+    score_map[i] = make([][]Trailhead, rows)
     for j in 0..<rows {
-      score_map[i][j] = make([]map[[2]int]bool, cols)
+      score_map[i][j] = make([]Trailhead, cols)
     }
   }
 
   for j in 0..<rows {
     for k in 0..<cols {
       if trail_map[j][k] == 9 {
-        score_map[9][j][k][[2]int{j, k}] = true
+        score_map[9][j][k].unique_trails[[2]int{j, k}] = true
+        score_map[9][j][k].distinct_trails = 1
       }
     }
   }
 
   trailhead_sum := 0
+  trailhead_ratings := 0
   for i := 8; i >= 0; i -= 1 {
     for j in 0..<rows {
       for k in 0..<cols {
@@ -119,12 +126,16 @@ main :: proc() {
             row := j + dir[0]
             col := k + dir[1]
             if row >= 0 && row < rows && col >= 0 && col < cols {
-              for key, _ in score_map[i + 1][row][col] {
-                score_map[i][j][k][key] = true
+              for key, _ in score_map[i + 1][row][col].unique_trails {
+                score_map[i][j][k].unique_trails[key] = true
               }
+              score_map[i][j][k].distinct_trails += score_map[i + 1][row][col].distinct_trails
             }
           }
-          if i == 0 do trailhead_sum += len(score_map[i][j][k])
+          if i == 0 {
+            trailhead_sum += len(score_map[i][j][k].unique_trails)
+            trailhead_ratings += score_map[i][j][k].distinct_trails
+          }
         }
       }
     }
@@ -137,5 +148,7 @@ main :: proc() {
   //   }
   // }
 
-  fmt.println("Trailhead sum: ", trailhead_sum)
+  fmt.println("Trailhead score sum: ", trailhead_sum)
+
+  fmt.println("Trailhead rating sum: ", trailhead_ratings)
 }
