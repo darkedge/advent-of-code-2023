@@ -2,6 +2,7 @@ package main
 
 import "core:fmt"
 import "core:strings"
+import "core:slice"
 
 input := `MMMMMMMMMMMMWWWWWWWWAAAAAAAAAAAAAAAASSSSSSHHHIIHHHHHHHGGGGGGGGGXXXXXXXXEEEEEEENPMMMMMMMMMMPPPPPPPPPPPPPPPAAAHHPHHHHHHHHHHHHTTTTTTTTBBBBWWRRR
 MMMMMMMMMMWWWWWWWWWAAAAAAAAAAAAAAAAASSSSSSHHHHHHHHHHGHGGGGGGGGGXXXXXXEEEEEEEENNNMMMMMMMMMMPPPPPPPPPPPPPPPAAAHHHHHHHHHHHHHHHDTTTTQTBBBBWWWWRR
@@ -145,7 +146,7 @@ QQQQQQQQQQQQQIIIIIIIIIIDDDDDDDDDDDDDUUGGGGGGGGGGGGGGGGGGJJPPPPPPPLLLLLLLLLLLLEEE
 QQQQQQQQQQQQRRIIIIISIIIDDDDDDDDDDDDDDDDRGGGGGGGGGGGGGGGJJJJJPJPPLLLLLLLLLLLLLLEEEEEEEEEEZEZZZLLLLLPPPPPMMMMMMMMMMMMMVVTTTTTTTMMMMMMOOOOOOOUU
 `
 
-flood_move :: proc(grid: [][]rune, r: int, c: int) -> int {
+flood_move :: proc(grid: [][]rune, r: int, c: int) -> (int, int) {
   num_plots := 0
   plant := grid[r][c]
   queue : [dynamic][2]int
@@ -174,24 +175,68 @@ flood_move :: proc(grid: [][]rune, r: int, c: int) -> int {
     }
   }
 
+  // Part 2 - Locate the positions of the edges per side
+  dirs :: [][2]int{{-1, 0}, {0, -1}, {0, 1}, {1, 0}}
+  edges : map[[2]int][dynamic][2]int
+  for dir in dirs do edges[dir] = make([dynamic][2]int)
+
   perimeter := 0
   for r in 0..<len(grid) {
     for c in 0..<len(grid[0]) {
       if buf[r][c] == plant {
-        dirs :: [][2]int{{-1, 0}, {0, -1}, {0, 1}, {1, 0}}
         for dir in dirs {
           if r + dir[0] >= 0 && r + dir[0] < len(grid) && c + dir[1] >= 0 && c + dir[1] < len(grid[0]) {
-            if buf[r + dir[0]][c + dir[1]] != plant do perimeter += 1
-          } else do perimeter += 1
+            if buf[r + dir[0]][c + dir[1]] != plant {
+              append(&edges[dir], [2]int{r, c})
+              perimeter += 1
+            }
+          } else {
+            append(&edges[dir], [2]int{r, c})
+            perimeter += 1
+          }
         }
       }
     }
   }
 
-  return num_plots * perimeter
+  less_row :: proc(a, b: [2]int) -> bool {
+    return a[0] < b[0] || a[0] == b[0] && a[1] < b[1]
+  }
+
+  less_col :: proc(a, b: [2]int) -> bool {
+    return a[1] < b[1] || a[1] == b[1] && a[0] < b[0]
+  }
+
+  // Part 2 - Sort the edges per side, adjacent edges have continuous increments of 1 per axis
+  sides := 0
+  for dir, &arr in edges {
+    slice.sort_by(arr[:], dir[0] == 0 ? less_col : less_row)
+    // fmt.println(dir, arr)
+    last := dir[0] == 0 ? arr[0][0] : arr[0][1]
+    lastMajor := dir[0] == 0 ? arr[0][1] : arr[0][0]
+    sides += 1
+    for pos in arr[1:] {
+      major := dir[0] == 0 ? pos[1] : pos[0]
+      edge := dir[0] == 0 ? pos[0] : pos[1]
+      if major != lastMajor || edge - last != 1 do sides += 1
+      lastMajor = major
+      last = edge
+    }
+  }
+
+  // fmt.println("===")
+
+  return num_plots * perimeter, num_plots * sides
 }
 
 main :: proc() {
+//   input = `AAAAAA
+// AAABBA
+// AAABBA
+// ABBAAA
+// ABBAAA
+// AAAAAA
+// `
   rows := strings.count(input, "\n")
   cols := strings.index(input, "\n")
 
@@ -208,12 +253,16 @@ main :: proc() {
   }
 
   fencing_price := 0
+  discount_price := 0
   for r in 0..<rows {
     for c in 0..<cols {
       if grid[r][c] == '.' do continue
-      fencing_price += flood_move(grid, r ,c)
+      f, d := flood_move(grid, r ,c)
+      fencing_price += f
+      discount_price += d
     }
   }
 
   fmt.println("fencing price:", fencing_price)
+  fmt.println("discount price:", discount_price)
 }
